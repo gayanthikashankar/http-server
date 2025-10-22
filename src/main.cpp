@@ -1,31 +1,29 @@
 #include "Socket.h"
 #include "HttpRequest.h"
 #include "HttpResponse.h"
+#include "Server.h"
 #include <iostream>
 #include <cstring>
 
 #define PORT 8080
-#define BUFFER_SIZE 4096 //buffer size for the request
+#define BUFFER_SIZE 4096 //buffer size for the HTTP request
 
-void handleClient(int client_fd) {
-    Socket client_socket(client_fd); //create a socket object for the client
+void handleClient(int client_fd, Server& server) {
+    Socket client_socket(client_fd);
     char buffer[BUFFER_SIZE];
-    memset(buffer, 0, BUFFER_SIZE); //initialize the buffer to 0
+    memset(buffer, 0, BUFFER_SIZE);
     
     //receive the HTTP request
     int bytes_received = client_socket.receive(buffer, BUFFER_SIZE - 1);
     
     if (bytes_received <= 0) {
         std::cerr << "Error receiving request or client disconnected" << std::endl;
-        client_socket.close();
+        client_socket.close(); 
         return;
     }
     
-    buffer[bytes_received] = '\0';
-    std::string raw_request(buffer); //convert the buffer to a string
-    
-    std::cout << "\nRAW REQUEST: " << std::endl;
-    std::cout << raw_request << std::endl;
+    buffer[bytes_received] = '\0'; //null terminate the buffer
+    std::string raw_request(buffer);
     
     //parse HTTP request
     HttpRequest request;
@@ -41,61 +39,49 @@ void handleClient(int client_fd) {
         std::string response_str = response.build(); //build the response
         client_socket.send(response_str.c_str(), response_str.length()); //send the response to the client
         client_socket.close();
-        return; 
+        return;
     }
     
-    //print parsed request
-    request.print();
+    //print parsed request (compact format)
+    std::cout << "\n[" << request.getMethod() << " " << request.getPath() << "]" << std::endl;
     
-    //create HTTP response
-    HttpResponse response;
-    response.setStatus(200);
-    response.setHeader("Content-Type", "text/html");
+    //create HTTP response and let server handle it
+    HttpResponse response;//response object
     response.setHeader("Server", "MyHTTPServer/1.0");
+    server.handleRequest(request, response); 
     
-    // Create a simple HTML response
-    std::string html = "<html>\n"
-                      "<head><title>Hello from HTTP Server</title></head>\n"
-                      "<body>\n"
-                      "<h1>Hello, World!</h1>\n"
-                      "<p>You requested: " + request.getPath() + "</p>\n" //path of the request
-                      "<p>Method: " + request.getMethod() + "</p>\n" //method of the request
-                      "</body>\n"
-                      "</html>";
-    
-    response.setBody(html); //set the body of the response
-    
-    std::string response_str = response.build(); //build the response
-    
-    std::cout << "\nSENDING RESPONSE... " << std::endl;
-    std::cout << response_str << std::endl;
-    
-    client_socket.send(response_str.c_str(), response_str.length()); //send the response to the client
-    client_socket.close(); //close the connection
+    //build and send response
+    std::string response_str = response.build(); 
+    client_socket.send(response_str.c_str(), response_str.length()); 
+    client_socket.close(); 
 }
 
 int main() {
-    std::cout << "HTTP SERVER: " << std::endl;
+    std::cout << " HTTP SERVER RUNNING ON PORT " << PORT << std::endl;
+    
+    //create server with www root   
+    Server server("./www");
     
     //create server socket
     Socket server_socket;
     server_socket.create();
-    server_socket.bind(PORT); //bind the socket to the port
-    server_socket.listen(5); //listen for connections, 5 = backlog (max number of pending connections)
+    server_socket.bind(PORT); //bind the socket to the port - this is where the server listens for incoming connections
+    server_socket.listen(5); //listen for incoming connections - backlog is the number of connections that can be queued up (set to 5)
     
     std::cout << "\nHTTP server running on http://localhost:" << PORT << std::endl;
-    std::cout << "Waiting for connections...\n" << std::endl;
+    std::cout << "Press Ctrl+C to stop the server\n" << std::endl;
     
+    //main server loop
     while (true) {
         //accept new connection
         int client_fd = server_socket.accept();
         
         if (client_fd < 0) {
-            continue;
+            continue; //if the connection is not accepted, continue the loop        
         }
         
         //handle the client
-        handleClient(client_fd);
+        handleClient(client_fd, server);
     }
     
     return 0;

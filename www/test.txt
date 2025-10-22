@@ -1,0 +1,4 @@
+This is a plain text file.
+It should be served with Content-Type: text/plain
+
+Testing 123...
