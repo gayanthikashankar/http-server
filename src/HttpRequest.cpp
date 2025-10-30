@@ -132,3 +132,97 @@ void HttpRequest::print() const {
         std::cout << "Body: " << body << std::endl;
     }
 }
+
+std::string HttpRequest::urlDecode(const std::string& str) {
+    std::string result;
+    for (size_t i = 0; i < str.length(); i++) {
+        if (str[i] == '%' && i + 2 < str.length()) {
+            //hex to char
+            std::string hex = str.substr(i + 1, 2);
+            try {
+                char ch = static_cast<char>(std::stoi(hex, nullptr, 16));
+                result += ch;
+                i += 2;
+            } catch (...) {
+                //invalid hex, keep the %
+                result += str[i];
+            }
+        } else if (str[i] == '+') {
+            result += ' ';
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
+}
+
+std::map<std::string, std::string> HttpRequest::parseFormData() {
+    std::map<std::string, std::string> form_data;
+    
+    //if body is empty, return the form data
+    if (body.empty()) {
+        return form_data;
+    }
+    
+    //parse application/x-www-form-urlencoded format
+    // Format: key1=value1&key2=value2&key3=value3
+    
+    std::istringstream stream(body);
+    std::string pair;
+    
+    while (std::getline(stream, pair, '&')) {
+        size_t equals_pos = pair.find('=');
+        
+        if (equals_pos != std::string::npos) {
+            std::string key = pair.substr(0, equals_pos);
+            std::string value = pair.substr(equals_pos + 1);
+            
+            key = urlDecode(key);
+            value = urlDecode(value);
+            
+            form_data[key] = value;
+        }
+    }
+    
+    return form_data;
+}
+
+std::map<std::string, std::string> HttpRequest::parseCookies() const {
+    std::map<std::string, std::string> cookies;
+    
+    std::string cookie_header = getHeader("cookie");
+    
+    if (cookie_header.empty()) {
+        return cookies;
+    }
+    
+    //cookie1=value1; cookie2=value2; cookie3=value3
+    std::istringstream stream(cookie_header);
+    std::string pair;
+    
+    while (std::getline(stream, pair, ';')) {
+        // Trim whitespace
+        pair = trim(pair);
+        
+        size_t equals_pos = pair.find('=');
+        if (equals_pos != std::string::npos) {
+            std::string name = pair.substr(0, equals_pos);
+            std::string value = pair.substr(equals_pos + 1);
+            
+            cookies[trim(name)] = trim(value);
+        }
+    }
+    
+    return cookies;
+}
+
+std::string HttpRequest::getCookie(const std::string& name) const {
+    std::map<std::string, std::string> cookies = parseCookies();
+    
+    auto it = cookies.find(name);
+    if (it != cookies.end()) {
+        return it->second;
+    }
+    
+    return "";
+}

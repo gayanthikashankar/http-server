@@ -1,5 +1,6 @@
 #include "HttpResponse.h"
 #include <sstream>
+#include <iostream>
 
 HttpResponse::HttpResponse() 
     : version("HTTP/1.1"), status_code(200), status_message("OK") {
@@ -30,14 +31,29 @@ void HttpResponse::setHeader(const std::string& name, const std::string& value) 
     headers[name] = value;
 }
 
+void HttpResponse::setCookie(const std::string& name, const std::string& value,
+                            int max_age, const std::string& path) {
+    std::ostringstream cookie;
+    cookie << name << "=" << value;
+    
+    if (!path.empty()) {
+        cookie << "; Path=" << path;
+    }
+    
+    if (max_age >= 0) {
+        cookie << "; Max-Age=" << max_age;
+    }
+    
+    cookies.push_back(cookie.str());
+    
+    std::cout << " Setting cookie: " << cookie.str() << std::endl;
+}
+
 void HttpResponse::setBody(const std::string& content) {
     body = content;
-    
-    //automatically set Content-Length
     setHeader("Content-Length", std::to_string(body.length()));
 }
 
-//build the raw HTTP response following the HTTP protocol and formatting rules
 std::string HttpResponse::build() const {
     std::ostringstream response;
     
@@ -45,6 +61,11 @@ std::string HttpResponse::build() const {
     
     for (const auto& header : headers) {
         response << header.first << ": " << header.second << "\r\n";
+    }
+    
+    //cookies - each set cookie is a sep headre 
+    for (const auto& cookie : cookies) {
+        response << "Set-Cookie: " << cookie << "\r\n";
     }
     
     response << "\r\n";

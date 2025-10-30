@@ -1,0 +1,27 @@
+=== New Submission ===
+
+=== New Submission ===
+email: john@example.com
+message: Hello Server
+name: John Doe
+
+=== New Submission ===
+email: gayanthika.s-26@scds.saiuniversity.edu.in
+message: hello!!
+name: Gayanthika
+
+=== New Submission ===
+email: test@test.com
+message: TestMessage
+name: TestName
+
+NEW SUBMISSION
+email: use@gmail.com
+message: today is thursday
+name: user1
+
+NEW SUBMISSION
+email: bob3@hotmail.com
+message: HELLO!!!!!!!
+name: bob
+

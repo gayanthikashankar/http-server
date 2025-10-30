@@ -6,33 +6,38 @@
 
 class HttpRequest {
 private:
-    std::string method;      //GET, POST, DELETE etc
-    std::string path;        // /index.html
-    std::string version;     // HTTP/1.1
-    std::map<std::string, std::string> headers;  // Header name -> value
-    std::string body;        //request body (for POST)
+    std::string method;
+    std::string path;
+    std::string version;
+    std::map<std::string, std::string> headers;
+    std::string body;
     
-    //helper methods
-    std::string trim(const std::string& str);
+    static std::string trim(const std::string& str);
     void parseRequestLine(const std::string& line);
     void parseHeader(const std::string& line);
     
 public:
     HttpRequest();
     
-    //main parsing method
+    //parsing method main - parses the raw request into a HttpRequest object
     bool parse(const std::string& raw_request);
     
-    //getters
+    //form data parsing - parses the form data into a map of key-value pairs
+    std::map<std::string, std::string> parseFormData();
+    static std::string urlDecode(const std::string& str);
+    
+    //cookie parsing - parses the cookies into a map of key-value pairs
+    std::map<std::string, std::string> parseCookies() const;
+    std::string getCookie(const std::string& name) const;
+    
     std::string getMethod() const { return method; }
     std::string getPath() const { return path; }
     std::string getVersion() const { return version; }
     std::string getHeader(const std::string& name) const;
     std::string getBody() const { return body; }
     
-    //utility
     bool isValid() const { return !method.empty() && !path.empty(); }
-    void print() const;  
+    void print() const;
 };
 
 #endif
