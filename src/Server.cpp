@@ -152,11 +152,12 @@ void Server::handlePOST(const HttpRequest& request, HttpResponse& response) {
     
     std::cout << "POST request to: " << path << std::endl;
     
-        // Route to appropriate handler
+    //route to appropriate handler
     if (path == "/login") {
         handleLogin(request, response);
         return;
     } else if (path == "/submit") {
+        //parse form data
         std::map<std::string, std::string> form_data = 
             const_cast<HttpRequest&>(request).parseFormData();
         
@@ -165,42 +166,78 @@ void Server::handlePOST(const HttpRequest& request, HttpResponse& response) {
             std::cout << "  " << pair.first << " = " << pair.second << std::endl;
         }
         
+        if (form_data.empty()) {
+            std::cout << " Warning: No form data received!" << std::endl;
+            std::cout << "Body content: [" << request.getBody() << "]" << std::endl;
+            
+            response.setStatus(400);
+            response.setHeader("Content-Type", "text/html");
+            response.setBody("<!DOCTYPE html><html><head><title>Error</title></head><body>"
+                            "<h1>400 Bad Request</h1>"
+                            "<p>No form data received.</p>"
+                            "<p><a href='/form.html'>Try Again</a></p>"
+                            "</body></html>");
+            return;
+        }
+        
         std::string log_path = uploads_root + "/submissions.txt";
         std::ofstream log_file(log_path, std::ios::app);
         
         if (log_file.is_open()) {
-            log_file << "NEW SUBMISSION" << std::endl;
+            log_file << "NEW SUBMISSION: " << std::endl;
             for (const auto& pair : form_data) {
                 log_file << pair.first << ": " << pair.second << std::endl;
             }
             log_file << std::endl;
             log_file.close();
             
-            response.setStatus(200);
+            response.setStatus(200); //success response
             response.setHeader("Content-Type", "text/html");
             
-            std::string html = "<!DOCTYPE html><html><head><title>Success</title></head><body>";
-            html += "<h1>Form Submitted Successfully!</h1>";
-            html += "<h2>Received Data:</h2><ul>";
+            std::string html = "<!DOCTYPE html><html><head>"
+                              "<title>Success</title>"
+                              "<style>"
+                              "body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }"
+                              "h1 { color: #28a745; }"
+                              "ul { background: #f8f9fa; padding: 20px; border-radius: 5px; list-style: none; }"
+                              "li { margin: 10px 0; padding: 10px; background: white; border-radius: 3px; }"
+                              "strong { color: #007bff; }"
+                              "a { display: inline-block; margin-top: 20px; color: #007bff; text-decoration: none; }"
+                              "</style>"
+                              "</head><body>"
+                              "<h1>✓ Form Submitted Successfully!</h1>"
+                              "<h2>Received Data:</h2>"
+                              "<ul>";
             
             for (const auto& pair : form_data) {
-                html += "<li><b>" + pair.first + ":</b> " + pair.second + "</li>";
+                html += "<li><strong>" + pair.first + ":</strong> " + pair.second + "</li>";
             }
             
-            html += "</ul><p><a href='/'>Back to Home</a></p></body></html>";
+            html += "</ul>"
+                   "<p><a href='/form.html'>Submit Another</a> | "
+                   "<a href='/'>Back to Home</a></p>"
+                   "</body></html>";
             
             response.setBody(html);
             
-            std::cout << " Form data saved" << std::endl;
+            std::cout << "Form data saved to " << log_path << std::endl;
         } else {
             response.setStatus(500);
             response.setHeader("Content-Type", "text/html");
-            response.setBody("<html><body><h1>500 Error</h1></body></html>");
+            response.setBody("<!DOCTYPE html><html><head><title>Error</title></head><body>"
+                            "<h1>500 Internal Server Error</h1>"
+                            "<p>Could not save submission.</p>"
+                            "</body></html>");
         }
     } else {
+        //unknown POST endpoint
         response.setStatus(404);
         response.setHeader("Content-Type", "text/html");
-        response.setBody("<html><body><h1>404 Not Found</h1></body></html>");
+        response.setBody("<!DOCTYPE html><html><head><title>Not Found</title></head><body>"
+                        "<h1>404 Not Found</h1>"
+                        "<p>POST endpoint " + path + " not found.</p>"
+                        "<p><a href='/'>Back to Home</a></p>"
+                        "</body></html>");
     }
 }
 

@@ -1,16 +1,16 @@
-=== New Submission ===
+NEW SUBMISSION
 
-=== New Submission ===
+NEW SUBMISSION
 email: john@example.com
 message: Hello Server
 name: John Doe
 
-=== New Submission ===
+NEW SUBMISSION
 email: gayanthika.s-26@scds.saiuniversity.edu.in
 message: hello!!
 name: Gayanthika
 
-=== New Submission ===
+NEW SUBMISSION
 email: test@test.com
 message: TestMessage
 name: TestName
@@ -25,3 +25,7 @@ email: bob3@hotmail.com
 message: HELLO!!!!!!!
 name: bob
 
+NEW SUBMISSION
+email: john@test.com
+message:  Hello
+name: John

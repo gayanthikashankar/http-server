@@ -13,6 +13,7 @@ void handleClient(int client_fd, Server& server) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
     
+    //recv the HTTP request
     int bytes_received = client_socket.receive(buffer, BUFFER_SIZE - 1);
     
     if (bytes_received <= 0) {
@@ -24,16 +25,18 @@ void handleClient(int client_fd, Server& server) {
     buffer[bytes_received] = '\0';
     std::string raw_request(buffer);
     
-    size_t first_newline = raw_request.find('\n');
-    std::string request_line = raw_request.substr(0, first_newline);
-    std::cout << "\n RAW REQUEST LINE: " << request_line << std::endl;
+    //show first 500 chars of request
+    std::cout << "\nRECEIVED REQUEST (" << bytes_received << " bytes):" << std::endl;
+    std::cout << raw_request.substr(0, 500) << std::endl;
+    std::cout << "---\n" << std::endl;
     
+    //parse HTTP request
     HttpRequest request;
     if (!request.parse(raw_request)) {
         std::cerr << "Failed to parse HTTP request" << std::endl;
         
         HttpResponse response;
-        response.setStatus(400); //bad request
+        response.setStatus(400);
         response.setHeader("Content-Type", "text/html");
         response.setBody("<html><body><h1>400 Bad Request</h1></body></html>");
         
@@ -43,15 +46,23 @@ void handleClient(int client_fd, Server& server) {
         return;
     }
     
-    std::cout << " PARSED PATH: " << request.getPath() << std::endl;
+    std::cout << "[" << request.getMethod() << " " << request.getPath() << "]" << std::endl;
     
-    //create http response and let server handle it
+    //show body for POST requests
+    if (request.getMethod() == "POST") {
+        std::cout << "POST Body: [" << request.getBody() << "]" << std::endl;
+    }
+    
+    //create HTTP response and let server handle it
     HttpResponse response;
     response.setHeader("Server", "MyHTTPServer/1.0");
+    response.setHeader("Connection", "close");
     server.handleRequest(request, response);
     
-    //build and send response
     std::string response_str = response.build();
+    
+    std::cout << "Sending: " << response_str.length() << " bytes" << std::endl;
+    
     client_socket.send(response_str.c_str(), response_str.length());
     client_socket.close();
 }
