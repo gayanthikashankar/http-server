@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <ctime>
 #include <cstdlib>
-
+#include <dirent.h>  
 
 Server::Server(const std::string& root, const std::string& uploads) 
     : www_root(root), uploads_root(uploads) {
@@ -106,6 +106,78 @@ void Server::handleGET(const HttpRequest& request, HttpResponse& response) {
     } else if (path == "/logout") {
         handleLogout(request, response);
         return;
+    } else if (path == "/files") {
+        handleFilesList(request, response);
+        return;
+    } else if (path == "/delete-all") {
+        handleDeleteAll(request, response);
+        return;
+    }
+    
+    //handle /uploads/ routes - serve from uploads directory
+    if (path.find("/uploads/") == 0) {
+        std::string clean_path = path;
+        size_t query_pos = clean_path.find('?');
+        bool force_download = false;
+        
+        if (query_pos != std::string::npos) {
+            std::string query = clean_path.substr(query_pos + 1);
+            clean_path = clean_path.substr(0, query_pos);
+            
+            //check if download=1 is in query
+            if (query.find("download=1") != std::string::npos) {
+                force_download = true;
+            }
+        }
+        
+        std::string file_path = "." + clean_path;  // ./uploads/filename.ext
+        
+        std::cout << "SERVING UPLOADED FILE " << file_path 
+                  << (force_download ? " (download)" : " (view)") << std::endl;
+        
+        if (!fileExists(file_path)) {
+            std::cout << "FILE NOT FOUND " << file_path << std::endl;
+            response.setStatus(404);
+            response.setHeader("Content-Type", "text/html");
+            response.setBody("<!DOCTYPE html><html><body><h1>404 Not Found</h1>"
+                            "<p>The requested resource " + path + " was not found.</p>"
+                            "</body></html>");
+            return;
+        }
+        
+        bool success;
+        std::string content = readFile(file_path, success);
+        
+        if (!success) {
+            std::cout << "FAILED TO READ FILE " << file_path << std::endl;
+            response.setStatus(500);
+            response.setHeader("Content-Type", "text/html");
+            response.setBody("<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1>"
+                            "<p>Failed to read file.</p></body></html>");
+            return;
+        }
+        
+        response.setStatus(200);
+        response.setHeader("Content-Type", getContentType(clean_path));
+        
+        //add Content-Disposition header
+        size_t last_slash = clean_path.find_last_of('/');
+        std::string filename = (last_slash != std::string::npos) ? 
+                              clean_path.substr(last_slash + 1) : clean_path;
+        
+        if (force_download) {
+            //force download
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        } else {
+            //try to display inline (browser decides based on content-type)
+            response.setHeader("Content-Disposition", "inline; filename=\"" + filename + "\"");
+        }
+        
+        response.setBody(content);
+        
+        std::cout << "SERVED UPLOADED FILE " << file_path 
+                  << " (" << content.length() << " bytes)" << std::endl;
+        return;
     }
     
     //default to index.html if path is /
@@ -113,15 +185,16 @@ void Server::handleGET(const HttpRequest& request, HttpResponse& response) {
         path = "/index.html";
     }
     
+    //regular file serving from www/
     std::string file_path = www_root + path;
     
-    std::cout << "Looking for file: " << file_path << std::endl;
+    std::cout << "LOOKING FOR FILE " << file_path << std::endl;
     
     if (!fileExists(file_path)) {
-        std::cout << "File not found: " << file_path << std::endl;
+        std::cout << "FILE NOT FOUND " << file_path << std::endl;
         response.setStatus(404);
         response.setHeader("Content-Type", "text/html");
-        response.setBody("<html><body><h1>404 Not Found</h1>"
+        response.setBody("<!DOCTYPE html><html><body><h1>404 Not Found</h1>"
                         "<p>The requested resource " + path + " was not found.</p>"
                         "</body></html>");
         return;
@@ -131,10 +204,10 @@ void Server::handleGET(const HttpRequest& request, HttpResponse& response) {
     std::string content = readFile(file_path, success);
     
     if (!success) {
-        std::cout << "Failed to read file: " << file_path << std::endl;
+        std::cout << "FAILED TO READ FILE " << file_path << std::endl;
         response.setStatus(500);
         response.setHeader("Content-Type", "text/html");
-        response.setBody("<html><body><h1>500 Internal Server Error</h1>"
+        response.setBody("<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1>"
                         "<p>Failed to read file.</p></body></html>");
         return;
     }
@@ -143,7 +216,7 @@ void Server::handleGET(const HttpRequest& request, HttpResponse& response) {
     response.setHeader("Content-Type", getContentType(path));
     response.setBody(content);
     
-    std::cout << "Served file: " << file_path 
+    std::cout << "SERVED FILE: " << file_path 
               << " (" << content.length() << " bytes)" << std::endl;
 }
 
@@ -155,6 +228,9 @@ void Server::handlePOST(const HttpRequest& request, HttpResponse& response) {
     //route to appropriate handler
     if (path == "/login") {
         handleLogin(request, response);
+        return;
+    } else if (path == "/upload") { 
+        handleUpload(request, response);
         return;
     } else if (path == "/submit") {
         //parse form data
@@ -205,7 +281,7 @@ void Server::handlePOST(const HttpRequest& request, HttpResponse& response) {
                               "a { display: inline-block; margin-top: 20px; color: #007bff; text-decoration: none; }"
                               "</style>"
                               "</head><body>"
-                              "<h1>✓ Form Submitted Successfully!</h1>"
+                              "<h1>Form Submitted Successfully!</h1>"
                               "<h2>Received Data:</h2>"
                               "<ul>";
             
@@ -461,4 +537,294 @@ void Server::handleLogout(const HttpRequest& request, HttpResponse& response) {
     response.setHeader("Location", "/");
     response.setHeader("Content-Type", "text/html");
     response.setBody("<html><body>Logging out...</body></html>");
+}
+
+void Server::handleUpload(const HttpRequest& request, HttpResponse& response) {
+    std::cout << "PROCESSING FILE UPLOAD..." << std::endl;
+    
+    //parse multipart form data
+    std::vector<UploadedFile> files;
+    std::map<std::string, std::string> form_fields = 
+        const_cast<HttpRequest&>(request).parseMultipartFormData(files);
+    
+    std::string description = form_fields["description"];
+    
+    if (files.empty()) {
+        std::cout << "NO FILES UPLOADED" << std::endl;
+        response.setStatus(400);
+        response.setHeader("Content-Type", "text/html");
+        response.setBody("<!DOCTYPE html><html><head><title>Error</title></head><body>"
+                        "<h1>400 Bad Request</h1>"
+                        "<p>No file was uploaded.</p>"
+                        "<p><a href='/upload.html'>Try Again</a></p>"
+                        "</body></html>");
+        return;
+    }
+    
+    //FOR EACH uploaded file
+    std::vector<std::string> saved_files;
+    
+    for (const auto& file : files) {
+        //create safe filename (prevent path traversal)
+        std::string safe_filename = file.filename;
+        
+        //remove any path components
+        size_t last_slash = safe_filename.find_last_of("/\\");
+        if (last_slash != std::string::npos) {
+            safe_filename = safe_filename.substr(last_slash + 1);
+        }
+        
+        //build full path
+        std::string file_path = uploads_root + "/" + safe_filename;
+        
+        std::cout << "SAVING TO: " << file_path << std::endl;
+        
+        //write file
+        std::ofstream out_file(file_path, std::ios::binary);
+        if (out_file.is_open()) {
+            out_file.write(file.content.c_str(), file.content.length());
+            out_file.close();
+            
+            saved_files.push_back(safe_filename);
+            std::cout << "SAVED: " << safe_filename 
+                      << " (" << file.content.length() << " bytes)" << std::endl;
+        } else {
+            std::cout << "FAILED TO SAVE: " << safe_filename << std::endl;
+        }
+    }
+    
+    //success response
+    if (!saved_files.empty()) {
+        response.setStatus(200);
+        response.setHeader("Content-Type", "text/html");
+        
+        std::string html = "<!DOCTYPE html><html><head><title>Upload Success</title>"
+                          "<style>"
+                          "body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }"
+                          "h1 { color: #28a745; }"
+                          ".file-list { background: #f8f9fa; padding: 20px; border-radius: 5px; }"
+                          ".file-item { background: white; margin: 10px 0; padding: 15px; border-radius: 3px; }"
+                          "a { color: #007bff; text-decoration: none; }"
+                          "</style>"
+                          "</head><body>"
+                          "<h1>Upload Successful!</h1>";
+        
+        if (!description.empty()) {
+            html += "<p><strong>Description:</strong> " + description + "</p>";
+        }
+        
+        html += "<div class='file-list'><h2>Uploaded Files:</h2>";
+        
+        for (const auto& filename : saved_files) {
+            std::string encoded_filename = HttpRequest::urlEncode(filename);
+            html += "<div class='file-item'>"
+                   "<strong>" + filename + "</strong><br>"
+                   "<a href='/uploads/" + encoded_filename + "?download=1'>Download</a> | "
+                   "<a href='/uploads/" + encoded_filename + "' target='_blank'>View</a>"
+                   "</div>";
+        }
+        
+        html += "</div>"
+               "<p style='margin-top: 20px;'>"
+               "<a href='/upload.html'>Upload Another</a> | "
+               "<a href='/files'>View All Files</a> | "
+               "<a href='/'>Home</a>"
+               "</p></body></html>";
+        
+        response.setBody(html);
+    } else {
+        response.setStatus(500);
+        response.setHeader("Content-Type", "text/html");
+        response.setBody("<!DOCTYPE html><html><body><h1>500 Error</h1>"
+                        "<p>Failed to save file.</p></body></html>");
+    }
+}
+
+void Server::handleFilesList(const HttpRequest& request, HttpResponse& response) {
+    std::cout << "LISTING UPLOADED FILES..." << std::endl;
+    
+    DIR* dir = opendir(uploads_root.c_str());
+    if (!dir) {
+        response.setStatus(500);
+        response.setHeader("Content-Type", "text/html");
+        response.setBody("<!DOCTYPE html><html><body><h1>Error</h1>"
+                        "<p>Could not open uploads directory.</p></body></html>");
+        return;
+    }
+    
+    // build file list
+    std::vector<std::string> files;
+    struct dirent* entry;
+    
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string filename = entry->d_name;
+        
+        // skip . and .. and hidden files
+        if (filename[0] == '.') {
+            continue;
+        }
+        
+        // skip submissions.txt
+        if (filename == "submissions.txt") {
+            continue;
+        }
+        
+        files.push_back(filename);
+    }
+    
+    closedir(dir);
+    
+    //sort files alphabetically
+    std::sort(files.begin(), files.end());
+    
+    response.setStatus(200);
+    response.setHeader("Content-Type", "text/html");
+    
+    std::string html = "<!DOCTYPE html><html><head><title>Uploaded Files</title>"
+                      "<style>"
+                      "body { font-family: Arial; max-width: 1000px; margin: 50px auto; padding: 20px; }"
+                      "h1 { color: #333; border-bottom: 3px solid #007bff; padding-bottom: 10px; }"
+                      ".header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }"
+                      ".delete-all-btn { background: #dc3545; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; }"
+                      ".delete-all-btn:hover { background: #c82333; }"
+                      ".files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin: 30px 0; }"
+                      ".file-card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; text-align: center; transition: transform 0.2s; }"
+                      ".file-card:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }"
+                      ".file-icon { font-size: 48px; margin-bottom: 10px; }"
+                      ".file-name { font-weight: bold; margin: 10px 0; word-break: break-word; }"
+                      ".file-actions { margin-top: 15px; }"
+                      ".file-actions a { margin: 0 5px; padding: 8px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 14px; }"
+                      ".file-actions a:hover { background: #0056b3; }"
+                      ".empty-state { text-align: center; padding: 60px 20px; color: #999; }"
+                      ".upload-btn { background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-size: 18px; margin: 20px 0; }"
+                      ".upload-btn:hover { background: #218838; }"
+                      "</style>"
+                      "<script>"
+                      "function confirmDeleteAll() {"
+                      "  if (confirm('Are you sure you want to delete ALL uploaded files? This cannot be undone!')) {"
+                      "    window.location.href = '/delete-all';"
+                      "  }"
+                      "}"
+                      "</script>"
+                      "</head><body>"
+                      "<h1>Uploaded Files</h1>"
+                      "<div class='header-actions'>"
+                      "<p>Total files: " + std::to_string(files.size()) + "</p>";
+    
+    if (!files.empty()) {
+        html += "<a href='javascript:void(0)' onclick='confirmDeleteAll()' class='delete-all-btn'>Delete All Files</a>";
+    }
+    
+    html += "</div>";
+    
+    if (files.empty()) {
+        html += "<div class='empty-state'>"
+               "<h2>No files uploaded yet</h2>"
+               "<p>Upload your first file to get started!</p>"
+               "</div>";
+    } else {
+        html += "<div class='files-grid'>";
+        
+        for (const auto& filename : files) {
+            // Get file extension for icon (using text labels instead of emojis)
+            std::string icon = "[FILE]";
+            std::string ext = filename.substr(filename.find_last_of(".") + 1);
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            
+            if (ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "gif") {
+                icon = "[IMG]";
+            } else if (ext == "pdf") {
+                icon = "[PDF]";
+            } else if (ext == "txt") {
+                icon = "[TXT]";
+            } else if (ext == "zip" || ext == "rar") {
+                icon = "[ZIP]";
+            }
+            
+            std::string encoded_filename = HttpRequest::urlEncode(filename);
+            html += "<div class='file-card'>"
+                   "<div class='file-icon'>" + icon + "</div>"
+                   "<div class='file-name'>" + filename + "</div>"
+                   "<div class='file-actions'>"
+                   "<a href='/uploads/" + encoded_filename + "?download=1' download>Download</a>"
+                   "<a href='/uploads/" + encoded_filename + "' target='_blank'>View</a>"
+                   "</div>"
+                   "</div>";
+        }
+        
+        html += "</div>";
+    }
+    
+    html += "<div style='text-align: center;'>"
+           "<a href='/upload.html' class='upload-btn'>Upload New File</a><br>"
+           "<a href='/'>Back to Home</a>"
+           "</div>"
+           "</body></html>";
+    
+    response.setBody(html);
+}
+
+void Server::handleDeleteAll(const HttpRequest& request, HttpResponse& response) {
+    std::cout << "DELETING ALL UPLOADED FILES..." << std::endl;
+    
+    DIR* dir = opendir(uploads_root.c_str());
+    if (!dir) {
+        response.setStatus(500);
+        response.setHeader("Content-Type", "text/html");
+        response.setBody("<!DOCTYPE html><html><body><h1>Error</h1>"
+                        "<p>Could not open uploads directory.</p></body></html>");
+        return;
+    }
+    
+    //delete all files (except submissions.txt and .gitkeep)
+    int deleted_count = 0;
+    struct dirent* entry;
+    
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string filename = entry->d_name;
+        
+        if (filename[0] == '.') {
+            continue;
+        }
+        
+        if (filename == "submissions.txt") {
+            continue;
+        }
+        
+        std::string file_path = uploads_root + "/" + filename;
+        if (std::remove(file_path.c_str()) == 0) {
+            std::cout << " DELETED FILE " << filename << std::endl;
+            deleted_count++;
+        } else {
+            std::cout << "  FAILED TO DELETE: " << filename << std::endl;
+        }
+    }
+    
+    closedir(dir);
+    
+    std::cout << "DELETED " << deleted_count << " files" << std::endl;
+    
+    response.setStatus(200);
+    response.setHeader("Content-Type", "text/html");
+    
+    std::string html = "<!DOCTYPE html><html><head><title>Files Deleted</title>"
+                      "<style>"
+                      "body { font-family: Arial; max-width: 600px; margin: 100px auto; text-align: center; }"
+                      "h1 { color: #dc3545; }"
+                      ".message { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; "
+                      "padding: 20px; border-radius: 5px; margin: 20px 0; }"
+                      "a { display: inline-block; margin: 10px; padding: 10px 20px; "
+                      "background: #007bff; color: white; text-decoration: none; border-radius: 4px; }"
+                      "a:hover { background: #0056b3; }"
+                      "</style>"
+                      "</head><body>"
+                      "<h1>Files Deleted</h1>"
+                      "<div class='message'>"
+                      "<p><strong>" + std::to_string(deleted_count) + " files</strong> have been deleted.</p>"
+                      "</div>"
+                      "<a href='/files'>Back to Files</a>"
+                      "<a href='/'>Home</a>"
+                      "</body></html>";
+    
+    response.setBody(html);
 }

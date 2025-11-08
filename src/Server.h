@@ -21,11 +21,14 @@ private:
     void handleGET(const HttpRequest& request, HttpResponse& response);
     void handlePOST(const HttpRequest& request, HttpResponse& response);
     void handleDELETE(const HttpRequest& request, HttpResponse& response);
+    void handleUpload(const HttpRequest& request, HttpResponse& response);
+    void handleDeleteAll(const HttpRequest& request, HttpResponse& response);
     
     //for cookies 
     void handleLogin(const HttpRequest& request, HttpResponse& response);
     void handleDashboard(const HttpRequest& request, HttpResponse& response);
     void handleLogout(const HttpRequest& request, HttpResponse& response);
+    void handleFilesList(const HttpRequest& request, HttpResponse& response);
     
 public:
     Server(const std::string& root = "./www", const std::string& uploads = "./uploads");
