@@ -1,0 +1,19 @@
+#compiled files
+obj/
+*.o
+server
+
+#uploaded files (but keep the directory structure)
+uploads/*
+!uploads/.gitkeep
+!uploads/README.md
+
+#ide files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+.DS_Store
+
+*.log
