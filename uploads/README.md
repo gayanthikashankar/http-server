@@ -1,4 +1,3 @@
-cat > uploads/README.md << 'EOF'
 # Uploads Directory
 
 This directory stores user-uploaded files and form submissions.

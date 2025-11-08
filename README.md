@@ -1,6 +1,6 @@
 # HTTP Web Server in C++
 
-A custom HTTP/1.1 web server built from scratch in C++ without using external web frameworks. Demonstrates low-level socket programming, HTTP protocol implementation, and modern web features.
+A custom HTTP/1.1 web server built from scratch in C++ without using external web frameworks. Features low-level socket programming, HTTP protocol implementation, and modern web features.
 
 ## Screenshots
 
@@ -21,7 +21,6 @@ A custom HTTP/1.1 web server built from scratch in C++ without using external we
 ### Form Processing
 ![Form Success](docs/screenshots/07-form-success.png)
 
----
 
 ##  Features
 
@@ -43,8 +42,6 @@ A custom HTTP/1.1 web server built from scratch in C++ without using external we
 -  **Secure by Design** - XSS prevention, path validation, safe file operations
 -  **Request Processing** - Complete request parsing with proper resource management
 -  **Clean Architecture** - Modular design with separation of concerns
-
----
 
 ## Quick Start
 
@@ -69,7 +66,6 @@ make
 
 Server will start on `http://localhost:8080`
 
----
 
 ## Usage Examples
 
@@ -107,9 +103,8 @@ curl -c cookies.txt -X POST http://localhost:8080/login \
 curl -b cookies.txt http://localhost:8080/dashboard
 ```
 
----
 
-## 🏗️ Architecture
+## Architecture
 
 ### Project Structure
 ```
@@ -182,7 +177,6 @@ Build HTTP response (HttpResponse)
 Send to client (Socket)
 ```
 
----
 
 ##  Technical Details
 
@@ -210,7 +204,6 @@ Send to client (Socket)
 - Restricted DELETE operations (uploads only)
 - Safe filename sanitization
 
----
 
 ##  Supported Features
 
@@ -249,16 +242,6 @@ curl -b cookies.txt http://localhost:8080/dashboard
 curl -b cookies.txt http://localhost:8080/logout
 ```
 
-### Load Testing (Optional)
-```bash
-#Apache Bench - 1000 requests, 10 concurrent
-ab -n 1000 -c 10 http://localhost:8080/
-
-#Note: Single-threaded design limits concurrent performance
-```
-
----
-
 ## Known Limitations
 
 - **Single-threaded**: Handles one request at a time (blocking I/O)
@@ -266,8 +249,6 @@ ab -n 1000 -c 10 http://localhost:8080/
 - **Memory-based sessions**: Sessions lost on server restart
 - **No persistence**: Uploaded files remain but sessions don't
 - **Basic authentication**: No password hashing or user database
-
----
 
 ## Potential Enhancements
 
@@ -280,8 +261,6 @@ Future improvements could include:
 - Gzip compression for responses
 - Rate limiting and request throttling
 - Configuration file support (JSON/YAML)
-
----
 
 ## Code Quality
 
@@ -298,21 +277,15 @@ Future improvements could include:
 - Debug symbols included (`-g` flag)
 - All warnings enabled (`-Wall -Wextra`)
 
----
-
 ## Contributing
 
 Contributions, issues, and feature requests are welcome!
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
----
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
 
 ## Learning Resources
 
