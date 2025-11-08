@@ -3,17 +3,25 @@ obj/
 *.o
 server
 
-#uploaded files (but keep the directory structure)
+#uploaded files - users get fresh start
 uploads/*
 !uploads/.gitkeep
 !uploads/README.md
 
-#ide files
+#user data - not tracked
+uploads/submissions.txt
+
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 .DS_Store
+.AppleDouble
+.LSOverride
 
 *.log
+
+*.bak
+*~
