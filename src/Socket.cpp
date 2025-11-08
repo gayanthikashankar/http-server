@@ -27,7 +27,7 @@ void Socket::create() {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     //socket file descriptor is less than 0, error
     if (socket_fd < 0) {
-        std::cerr << "Error: Failed to create socket" << std::endl;
+        std::cerr << "ERROR: Failed to create socket" << std::endl;
         exit(1);
     }
     
@@ -35,7 +35,7 @@ void Socket::create() {
     int opt = 1; //reuse address
     //sol_socket = socket level, SO_REUSEADDR = reuse address option, opt = value of the option, sizeof(opt) = size of the option
     if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        std::cerr << "Error: Failed to set socket options" << std::endl;
+        std::cerr << "ERROR: Failed to set socket options" << std::endl;
         exit(1);
     }
     
@@ -61,7 +61,7 @@ void Socket::bind(int port) {
 void Socket::listen(int backlog) {
     //backlog = #pending connections we can have before the kernel starts rejecting new ones 
     if (::listen(socket_fd, backlog) < 0) {
-        std::cerr << "Error: Failed to listen on socket" << std::endl;
+        std::cerr << "ERROR: Failed to listen on socket" << std::endl;
         exit(1);
     }
     
@@ -76,7 +76,7 @@ int Socket::accept() {
     int client_fd = ::accept(socket_fd, (struct sockaddr*)&client_address, &client_len);
     
     if (client_fd < 0) {
-        std::cerr << "Error: Failed to accept connection" << std::endl;
+        std::cerr << "ERROR: Failed to accept connection" << std::endl;
         return -1;
     }
     
@@ -94,7 +94,7 @@ int Socket::receive(char* buffer, int size) {
     int bytes_received = recv(socket_fd, buffer, size, 0);
     
     if (bytes_received < 0) {
-        std::cerr << "Error: Failed to receive data" << std::endl;
+        std::cerr << "ERROR: Failed to receive data" << std::endl;
         return -1;
     }
     
@@ -110,7 +110,7 @@ int Socket::send(const char* data, int size) {
     int bytes_sent = ::send(socket_fd, data, size, 0);
     
     if (bytes_sent < 0) {
-        std::cerr << "Error: Failed to send data" << std::endl;
+        std::cerr << "ERROR: Failed to send data" << std::endl;
         return -1;
     }
     

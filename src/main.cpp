@@ -1,4 +1,3 @@
-// src/main.cpp
 #include "Socket.h"
 #include "HttpRequest.h"
 #include "HttpResponse.h"
@@ -132,7 +131,7 @@ void handleClient(int client_fd, Server& server) {
     
     std::string response_str = response.build();
     
-    std::cout << "📤 Sending: " << response_str.length() << " bytes" << std::endl;
+    std::cout << "SENDING: " << response_str.length() << " bytes" << std::endl;
     
     client_socket.send(response_str.c_str(), response_str.length());
     client_socket.close();

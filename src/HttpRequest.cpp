@@ -160,12 +160,12 @@ std::string HttpRequest::urlEncode(const std::string& str) {
     std::string result;
     for (size_t i = 0; i < str.length(); i++) {
         unsigned char c = str[i];
-        // Characters that don't need encoding: alphanumeric, '-', '_', '.', '~'
+        //characters that don't need encoding: alphanumeric, '-', '_', '.', '~'
         if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || 
             (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~') {
             result += c;
         } else {
-            // Encode as %XX
+            //encode as %XX
             result += '%';
             result += "0123456789ABCDEF"[c >> 4];
             result += "0123456789ABCDEF"[c & 0x0F];
@@ -268,7 +268,7 @@ std::map<std::string, std::string> HttpRequest::parseMultipartFormData(std::vect
         return form_fields;
     }
     
-    std::string boundary = content_type.substr(boundary_pos + 9); // Skip "boundary="
+    std::string boundary = content_type.substr(boundary_pos + 9); 
     boundary = trim(boundary);
     
     if (boundary.front() == '"' && boundary.back() == '"') { //removing quotes
@@ -389,7 +389,7 @@ std::map<std::string, std::string> HttpRequest::parseMultipartFormData(std::vect
         } else {
             //if it's a regular form field
             form_fields[field_name] = part_content;
-            std::cout << "📝 Form field: " << field_name << " = " << part_content << std::endl;
+            std::cout << "FORM FIELD: " << field_name << " = " << part_content << std::endl;
         }
         
         pos = next_boundary;
