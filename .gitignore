@@ -1,15 +1,20 @@
-#compiled files
+cat > .gitignore << 'EOF'
 obj/
 *.o
 server
 
-#uploaded files - users get fresh start
 uploads/*
 !uploads/.gitkeep
 !uploads/README.md
 
-#user data - not tracked
 uploads/submissions.txt
+cookies.txt
+
+test.txt
+secret.txt
+
+*.log
+server.log
 
 .vscode/
 .idea/
@@ -20,8 +25,11 @@ uploads/submissions.txt
 .DS_Store
 .AppleDouble
 .LSOverride
-
-*.log
+._*
 
 *.bak
 *~
+
+*.tmp
+.cache/
+EOF
