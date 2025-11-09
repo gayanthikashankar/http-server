@@ -1,6 +1,6 @@
 # HTTP Web Server in C++
 
-A custom HTTP/1.1 web server built from scratch in C++ without using external web frameworks. Features low-level socket programming, HTTP protocol implementation, and modern web features.
+A custom HTTP/1.1 web server built from scratch in C++. Features low-level socket programming, HTTP protocol implementation, and modern web features.
 
 ## Screenshots
 
@@ -36,12 +36,6 @@ A custom HTTP/1.1 web server built from scratch in C++ without using external we
 -  **File Uploads** - Multipart form data parsing with binary support
 - **Form Processing** - URL-encoded and multipart form handling
 -  **Security** - Path traversal protection and input validation
-
-### Technical Highlights
--  **TCP Socket Programming** - Low-level networking with BSD sockets
--  **Secure by Design** - XSS prevention, path validation, safe file operations
--  **Request Processing** - Complete request parsing with proper resource management
--  **Clean Architecture** - Modular design with separation of concerns
 
 ## Quick Start
 
@@ -261,21 +255,6 @@ Future improvements could include:
 - Gzip compression for responses
 - Rate limiting and request throttling
 - Configuration file support (JSON/YAML)
-
-## Code Quality
-
-### Standards
-- C++11 compliance
-- RAII for resource management
-- Comprehensive error handling
-- Consistent naming conventions
-- Memory-safe practices
-
-### Build System
-- Makefile with automatic dependency tracking
-- Separate compilation for faster rebuilds
-- Debug symbols included (`-g` flag)
-- All warnings enabled (`-Wall -Wextra`)
 
 ## Contributing
 
