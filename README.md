@@ -110,20 +110,20 @@ curl -b cookies.txt http://localhost:8080/dashboard
 ```
 http-server/
 ├── src/
-│   ├── main.cpp           # Server entry point and request handling
-│   ├── Socket.cpp/h       # Socket wrapper class
-│   ├── HttpRequest.cpp/h  # HTTP request parser
-│   ├── HttpResponse.cpp/h # HTTP response builder
-│   └── Server.cpp/h       # Request routing and handlers
-├── www/                   # Static files directory
+│   ├── main.cpp           #server entry point and request handling
+│   ├── Socket.cpp/h       #socket wrapper class
+│   ├── HttpRequest.cpp/h  
+│   ├── HttpResponse.cpp/h 
+│   └── Server.cpp/h       #request routing and handlers
+├── www/                   
 │   ├── index.html
 │   ├── style.css
 │   ├── upload.html
 │   ├── login.html
 │   └── form.html
-├── uploads/               # User uploads directory (git-ignored)
+├── uploads/               
 ├── docs/
-│   └── screenshots/       # Documentation images
+│   └── screenshots/       
 ├── Makefile
 ├── README.md
 ├── LICENSE
